@@ -56,6 +56,13 @@ test('buildScriptTag：可覆盖 scriptSrc', () => {
   assert.match(tag, /src="https:\/\/cdn\.example\/s\.js"/)
 })
 
+test('buildScriptTag：属性值转义（防破标签/注入）', () => {
+  const tag = buildScriptTag({ websiteId: 'a"b<c>&d', scriptSrc: 'https://x/y?a=1&b=2' })
+  assert.ok(!tag.includes('a"b'), '原始引号不得出现在标签里')
+  assert.match(tag, /data-website-id="a&quot;b&lt;c&gt;&amp;d"/)
+  assert.match(tag, /src="https:\/\/x\/y\?a=1&amp;b=2"/)
+})
+
 test('DEFAULT_DENY_PREFIXES：包含 /s/ 与 /r/', () => {
   assert.ok(DEFAULT_DENY_PREFIXES.includes('/s/'))
   assert.ok(DEFAULT_DENY_PREFIXES.includes('/r/'))

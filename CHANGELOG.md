@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-08
+
+### Fixed
+
+- `buildScriptTag`：属性值（websiteId/scriptSrc）做 HTML 转义，防引号/尖括号破标签。
+- 加 `typesVersions`：兼容经典 `moduleResolution: node` 的 `@hxym18/analytics/react` 子路径类型解析。
+
 ## [0.1.0] - 2026-10-08
 
 ### Added

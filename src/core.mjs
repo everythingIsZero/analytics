@@ -52,6 +52,15 @@ export function shouldTrack(pathname, opts) {
   return true
 }
 
+/** HTML 属性值转义（防破标签/注入） */
+function escapeAttr(v) {
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 /**
  * 产出 Umami `<script>` 标签（纯字符串，供无框架/静态站内联；React 站用 `@hxym18/analytics/react`）。
  * @param {{ websiteId: string, scriptSrc?: string }} opts
@@ -59,7 +68,7 @@ export function shouldTrack(pathname, opts) {
  */
 export function buildScriptTag(opts) {
   const o = opts || {}
-  const src = o.scriptSrc || DEFAULT_SCRIPT_SRC
-  const id = String(o.websiteId || '')
+  const src = escapeAttr(o.scriptSrc || DEFAULT_SCRIPT_SRC)
+  const id = escapeAttr(o.websiteId || '')
   return `<script defer src="${src}" data-website-id="${id}"></script>`
 }

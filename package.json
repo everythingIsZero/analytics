@@ -1,6 +1,6 @@
 {
   "name": "@hxym18/analytics",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "统计接入 SDK：Umami 脚本 + 路径门控（带 token/私有路由绝不挂统计）",
   "type": "module",
   "license": "MIT",
@@ -25,6 +25,11 @@
       "default": "./src/react.mjs"
     },
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "react": ["src/react.d.ts"]
+    }
   },
   "peerDependencies": {
     "react": ">=18"
