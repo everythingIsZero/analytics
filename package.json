@@ -1,0 +1,40 @@
+{
+  "name": "@hxym18/analytics",
+  "version": "0.1.0",
+  "description": "统计接入 SDK：Umami 脚本 + 路径门控（带 token/私有路由绝不挂统计）",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everythingIsZero/analytics.git"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs",
+      "default": "./src/index.mjs"
+    },
+    "./react": {
+      "types": "./src/react.d.ts",
+      "import": "./src/react.mjs",
+      "default": "./src/react.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "test": "node --test 'test/**/*.test.mjs'"
+  }
+}
