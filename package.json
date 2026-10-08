@@ -28,7 +28,9 @@
   },
   "typesVersions": {
     "*": {
-      "react": ["src/react.d.ts"]
+      "react": [
+        "src/react.d.ts"
+      ]
     }
   },
   "peerDependencies": {
@@ -41,5 +43,9 @@
   },
   "scripts": {
     "test": "node --test 'test/**/*.test.mjs'"
+  },
+  "devDependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   }
 }
