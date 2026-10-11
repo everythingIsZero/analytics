@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import {
   DEFAULT_DENY_PREFIXES,
   DEFAULT_DENY_QUERY_KEYS,
+  NOINDEX_ROBOTS,
   resolvePathname,
   shouldTrack,
   buildScriptTag,
@@ -114,4 +115,9 @@ test('DEFAULT_DENY_PREFIXES：包含 /s/ 与 /r/', () => {
   assert.ok(DEFAULT_DENY_PREFIXES.includes('/s/'))
   assert.ok(DEFAULT_DENY_PREFIXES.includes('/r/'))
   assert.ok(Object.isFrozen(DEFAULT_DENY_PREFIXES))
+})
+
+test('NOINDEX_ROBOTS：私密/带 token 页用（index/follow 均 false）', () => {
+  assert.deepEqual(NOINDEX_ROBOTS, { index: false, follow: false })
+  assert.ok(Object.isFrozen(NOINDEX_ROBOTS))
 })

@@ -61,6 +61,22 @@ import { UmamiScript } from '@hxym18/analytics/react'
   需要全局挂载请用上面的**客户端组件**。
 - 只统计公开内容页的站可用 `allowPrefixes` 收窄（例如 `['/blog', '/poems']`）。
 
+## 私密 / 带 token 页必须 noindex
+
+统计门控只保证「不上报」，不阻止**搜索引擎收录**。带 token 或私有的页面（`/s/*`、登录后页等）
+必须同时声明 `noindex`，否则凭证/私密内容可能进搜索索引：
+
+```jsx
+// app/s/[token]/page.tsx
+import { NOINDEX_ROBOTS } from '@hxym18/analytics'
+
+export const metadata = { robots: NOINDEX_ROBOTS } // { index: false, follow: false }
+```
+
+无框架站：`<meta name="robots" content="noindex, nofollow">`。
+
+> 门控（不统计）+ noindex（不收录）是两件不同的事，私密页两者都要。
+
 ## 无框架 / 静态站
 
 ```js

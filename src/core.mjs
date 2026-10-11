@@ -27,6 +27,13 @@ export const DEFAULT_DENY_PREFIXES = Object.freeze(['/s/', '/r/', '/api/'])
 export const DEFAULT_DENY_QUERY_KEYS = Object.freeze(['token', 't', 'access_token'])
 
 /**
+ * 私密/带 token 页的 robots 元数据：**必须 noindex**，避免凭证页被搜索引擎收录。
+ * 与门控互补——门控管「不上报统计」，此常量管「不被索引」，二者都要。
+ * Next 用法：`export const metadata = { robots: NOINDEX_ROBOTS }`。
+ */
+export const NOINDEX_ROBOTS = Object.freeze({ index: false, follow: false })
+
+/**
  * 取 pathname：接受完整 URL 或裸路径，去 query/hash；非法/空落 `/`。
  * @param {unknown} input
  * @returns {string}
