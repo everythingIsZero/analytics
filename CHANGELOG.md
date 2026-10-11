@@ -4,10 +4,6 @@
 
 ## [Unreleased]
 
-### Added
-
-- **业务事件守卫 `trackEvent(name, data?)`**（spec §6.5）：SSR 或 `window.umami.track` 未挂载时**静默 no-op**，宿主抛错被吞掉，永不抛错；返回 `boolean` 表示是否真的送出，`data` 省略时不传第二参。站点不再直接写 `window.umami.track`。
-
 ## [0.2.0] - 2026-10-11
 
 ### Added
@@ -18,6 +14,8 @@
 - `NOINDEX_ROBOTS = { index: false, follow: false }`：私密 / 带 token 页的 `noindex` 载体（Next `metadata.robots` 直接用）。
 - `next` 标为可选 peer（`./react/client` 入口专用）；SSR 与客户端组件共用同一 script 元素渲染实现。
 
+- **业务事件守卫 `trackEvent(name, data?)`**（spec §6.5）：SSR 或 `window.umami.track` 未挂载时**静默 no-op**，宿主抛错被吞掉，永不抛错；返回 `boolean` 表示是否真的送出，`data` 省略时不传第二参。站点不再直接写 `window.umami.track`。
+
 ### Changed
 
 - `UmamiScript`（SSR）保留：新增 `denyQueryKeys` 透传；README 改为「客户端组件（运行时路径）+ 按页 SSR」双用法，删除根布局硬编码 `pathname="/"` 的反例。
@@ -25,6 +23,10 @@
 ### Fixed
 
 - 客户端组件在路径 hook 返回 `null`/空串时 **fail-closed**（不产出脚本）——未知路径不得当作根路径放行，与「私有路由绝不外泄」红线一致。
+
+### Chore
+
+- 包内**契约副本**声明（`hxym18.contracts`）：`sensitive-prefixes@1`、`analytics-policy@1`。
 
 ## [0.1.1] - 2026-10-08
 
