@@ -8,8 +8,8 @@
  *
  * 组件在 !shouldTrack(pathname) 时返回 null —— 带 token/私有路由不再产出 script 标签。
  */
-import { createElement } from 'react'
-import { DEFAULT_SCRIPT_SRC, shouldTrack } from './core.mjs'
+import { shouldTrack } from './core.mjs'
+import { buildScriptElement } from './react-render.mjs'
 
 /**
  * @param {{
@@ -17,18 +17,15 @@ import { DEFAULT_SCRIPT_SRC, shouldTrack } from './core.mjs'
  *   pathname?: string,
  *   scriptSrc?: string,
  *   allowPrefixes?: string[],
- *   denyPrefixes?: string[]
+ *   denyPrefixes?: string[],
+ *   denyQueryKeys?: string[]
  * }} props
  */
 export function UmamiScript(props) {
-  const { websiteId, pathname, scriptSrc, allowPrefixes, denyPrefixes } = props || {}
+  const { websiteId, pathname, scriptSrc, allowPrefixes, denyPrefixes, denyQueryKeys } = props || {}
   if (!websiteId) return null
-  if (!shouldTrack(pathname, { allowPrefixes, denyPrefixes })) return null
-  return createElement('script', {
-    defer: true,
-    src: scriptSrc || DEFAULT_SCRIPT_SRC,
-    'data-website-id': websiteId,
-  })
+  if (!shouldTrack(pathname, { allowPrefixes, denyPrefixes, denyQueryKeys })) return null
+  return buildScriptElement({ websiteId, scriptSrc })
 }
 
 export default UmamiScript

@@ -24,20 +24,32 @@
       "import": "./src/react.mjs",
       "default": "./src/react.mjs"
     },
+    "./react/client": {
+      "types": "./src/react-client.d.ts",
+      "import": "./src/react-client.mjs",
+      "default": "./src/react-client.mjs"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
       "react": [
         "src/react.d.ts"
+      ],
+      "react/client": [
+        "src/react-client.d.ts"
       ]
     }
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "next": ">=13"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "next": {
       "optional": true
     }
   },

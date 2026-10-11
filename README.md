@@ -16,23 +16,49 @@ pnpm add github:everythingIsZero/analytics#v0.1.0
 
 ## React / Next
 
+两种用法，按需选：
+
+### 1. 客户端组件（推荐；按**运行时**路径 + query 判定）
+
 ```jsx
-// app/layout.tsx（公开内容页）
-import { UmamiScript } from '@hxym18/analytics/react'
+// app/layout.tsx
+import { Suspense } from 'react'
+import { UmamiScriptClient } from '@hxym18/analytics/react/client'
 
 export default function Layout({ children }) {
   return (
     <html>
       <body>
         {children}
-        <UmamiScript websiteId="<你的 umami website id>" pathname="/" />
+        {/* useSearchParams 要求 Suspense 边界，否则整页退出静态渲染 */}
+        <Suspense fallback={null}>
+          <UmamiScriptClient websiteId="<你的 umami website id>" />
+        </Suspense>
       </body>
     </html>
   )
 }
 ```
 
-- `pathname` 传当前路径（服务端/客户端均可）；命中私有/ token 前缀时组件返回 `null`，不产出脚本。
+- 组件读**当前** `usePathname()` + `useSearchParams()`；命中私有前缀（`/s/` `/r/` `/api/`）或敏感 query
+  （`token` / `t` / `access_token`，大小写不敏感）时返回 `null`，不产出脚本。
+- 因为按运行时路径判定，**缓存页**与 **SPA 客户端切换**后同样受控：切到私有/带 token 路径即停止统计。
+- **Next 下 `useSearchParams` 必须在 `<Suspense>` 边界内**（Next 要求；不包会导致该页无法静态渲染）。
+- 非 Next 的 React 站（如 React Router）：`import { createUmamiScriptClient } from '@hxym18/analytics/react/client'`，
+  注入自己的路径 hook，例如 `createUmamiScriptClient({ usePathname: () => location.pathname, useSearchParams: () => new URLSearchParams(location.search) })`。
+
+### 2. 按页 SSR（`UmamiScript`；给已知 pathname 的服务端组件用）
+
+```jsx
+import { UmamiScript } from '@hxym18/analytics/react'
+
+// 例如 app/blog/[slug]/page.tsx：显式给出该页 pathname
+<UmamiScript websiteId="<你的 umami website id>" pathname={`/blog/${slug}`} />
+```
+
+- 用于**已知具体 pathname** 的服务端页面；命中私有前缀或敏感 query 时组件返回 `null`，不产出脚本。
+- ⚠️ 不要在根布局硬编码 `pathname="/"`：SSR 拿不到当前路由时这样写会让私有页也判定为公开页。
+  需要全局挂载请用上面的**客户端组件**。
 - 只统计公开内容页的站可用 `allowPrefixes` 收窄（例如 `['/blog', '/poems']`）。
 
 ## 无框架 / 静态站
@@ -48,7 +74,10 @@ if (shouldTrack(location.pathname)) {
 ## 默认门控
 
 - 默认拦截前缀：`/s/`（分享 token）、`/r/`、`/api/`。
-- `shouldTrack(pathname, { allowPrefixes, denyPrefixes })`：`allowPrefixes` 给了则只有命中白名单才统计；`denyPrefixes` 覆盖默认拦截。
+- 默认拦截敏感 query key：`token` / `t` / `access_token`（小写比较，`?Token=` 同样拦）。
+- `shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys })`：`input` 可为完整 URL 或带 `?query` 的裸路径；
+  先查敏感 query（命中即不统计），再按前缀判定。`allowPrefixes` 给了则只有命中白名单才统计；
+  `denyPrefixes` / `denyQueryKeys` 覆盖默认（`denyQueryKeys: []` 显式关闭该闸）。
 - **分享页 / 带 token 路由不得挂全局统计**（URL 含 token 即泄漏）——本包默认满足。
 
 ## 测试

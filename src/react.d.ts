@@ -6,6 +6,7 @@ export interface UmamiScriptProps {
   scriptSrc?: string
   allowPrefixes?: string[]
   denyPrefixes?: string[]
+  denyQueryKeys?: string[]
 }
 
 export function UmamiScript(props: UmamiScriptProps): ReactElement | null
