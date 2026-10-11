@@ -18,6 +18,15 @@ export const DEFAULT_SCRIPT_SRC = 'https://u.hxym18.com/script.js'
 export const DEFAULT_DENY_PREFIXES = Object.freeze(['/s/', '/r/', '/api/'])
 
 /**
+ * 默认拦截的敏感 query key：URL 带这些参数即视为私密/凭证链接，一律不统计。
+ * 比较时统一小写（`?Token=` 与 `?token=` 等价）。
+ * - `token`：通用分享/访问 token
+ * - `t`：短链 token
+ * - `access_token`：OAuth/SSO 回跳携带
+ */
+export const DEFAULT_DENY_QUERY_KEYS = Object.freeze(['token', 't', 'access_token'])
+
+/**
  * 取 pathname：接受完整 URL 或裸路径，去 query/hash；非法/空落 `/`。
  * @param {unknown} input
  * @returns {string}
@@ -34,16 +43,41 @@ export function resolvePathname(input) {
 }
 
 /**
+ * 解析 query key 集合：接受完整 URL 或裸路径（含 `?query`），返回小写 key 数组；非法/无 query 落 `[]`。
+ * @param {unknown} input
+ * @returns {string[]}
+ */
+export function resolveQueryKeys(input) {
+  const s = typeof input === 'string' ? input : ''
+  if (!s) return []
+  try {
+    const u = new URL(s, 'http://localhost')
+    return [...u.searchParams.keys()].map((k) => k.toLowerCase())
+  } catch {
+    return []
+  }
+}
+
+/**
  * 是否应挂统计。
- * @param {unknown} pathname 当前路径（或完整 URL）
- * @param {{ allowPrefixes?: string[], denyPrefixes?: string[] }} [opts]
+ * @param {unknown} input 当前路径（或完整 URL；裸路径可带 `?query`）
+ * @param {{ allowPrefixes?: string[], denyPrefixes?: string[], denyQueryKeys?: string[] }} [opts]
  *   allowPrefixes 给了则**只有**命中白名单才统计（登录墙/工具站收窄到公开内容页用）；
- *   denyPrefixes 覆盖默认拦截前缀（默认见 DEFAULT_DENY_PREFIXES）。
+ *   denyPrefixes 覆盖默认拦截前缀（默认见 DEFAULT_DENY_PREFIXES）；
+ *   denyQueryKeys 覆盖默认敏感 query key（默认见 DEFAULT_DENY_QUERY_KEYS；传 `[]` 显式关闭该闸）。
  * @returns {boolean}
  */
-export function shouldTrack(pathname, opts) {
+export function shouldTrack(input, opts) {
   const o = opts || {}
-  const path = resolvePathname(pathname)
+  // 先查 query：带敏感 token 的 URL 一律不统计（含公开路径），避免凭证随上报泄漏。
+  const denyKeys = Array.isArray(o.denyQueryKeys)
+    ? o.denyQueryKeys.map((k) => String(k).toLowerCase())
+    : DEFAULT_DENY_QUERY_KEYS
+  if (denyKeys.length) {
+    const keys = resolveQueryKeys(input)
+    if (keys.some((k) => denyKeys.includes(k))) return false
+  }
+  const path = resolvePathname(input)
   if (Array.isArray(o.allowPrefixes)) {
     if (!o.allowPrefixes.some((p) => typeof p === 'string' && path.startsWith(p))) return false
   }
