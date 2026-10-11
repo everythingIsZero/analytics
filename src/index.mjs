@@ -6,4 +6,5 @@ export {
   resolvePathname,
   shouldTrack,
   buildScriptTag,
+  trackEvent,
 } from './core.mjs'

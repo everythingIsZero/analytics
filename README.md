@@ -88,6 +88,23 @@ if (shouldTrack(location.pathname)) {
 }
 ```
 
+## 业务事件（自定义事件）
+
+站点主动上报业务事件时用 `trackEvent`，不要直接写 `window.umami.track`——由本函数守卫宿主是否就绪：
+
+```js
+import { trackEvent } from '@hxym18/analytics'
+
+// 返回 boolean：是否真的送出
+if (trackEvent('signup', { plan: 'pro' })) { /* 已上报 */ }
+trackEvent('export_docx') // data 省略时不传第二参
+```
+
+- **SSR 安全**：`typeof window === 'undefined'` 时静默 no-op。
+- **Umami 脚本未挂载时业务事件不报错**：私有页被门控拦下 / 脚本加载失败 / 站点尚未接入脚本，`window.umami.track` 不存在即静默返回 `false`。
+- **永不抛错**：宿主实现抛错也吞掉（像 share-kit 的 `send`），不影响用户动作；返回 `false`。
+- ⚠️ `trackEvent` 只保证「不炸」，**不替代路径门控**：私有 / 带 token 页本就该整页不挂脚本，`trackEvent` 不是泄密挡板。
+
 ## 默认门控
 
 - 默认拦截前缀：`/s/`（分享 token）、`/r/`、`/api/`。

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **业务事件守卫 `trackEvent(name, data?)`**（spec §6.5）：SSR 或 `window.umami.track` 未挂载时**静默 no-op**，宿主抛错被吞掉，永不抛错；返回 `boolean` 表示是否真的送出，`data` 省略时不传第二参。站点不再直接写 `window.umami.track`。
+
 ## [0.2.0] - 2026-10-11
 
 ### Added

@@ -22,3 +22,10 @@ export interface ShouldTrackOptions {
 export function shouldTrack(input: unknown, opts?: ShouldTrackOptions): boolean
 
 export function buildScriptTag(opts: { websiteId: string; scriptSrc?: string }): string
+
+/**
+ * 业务事件守卫（spec §6.5）。SSR 或 `window.umami.track` 未挂载时**静默 no-op**，永不抛错
+ * （宿主抛错也吞掉）。`data` 省略时不传第二参。
+ * @returns 是否真的送出
+ */
+export function trackEvent(name: string, data?: Record<string, unknown>): boolean

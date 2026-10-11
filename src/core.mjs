@@ -113,3 +113,29 @@ export function buildScriptTag(opts) {
   const id = escapeAttr(o.websiteId || '')
   return `<script defer src="${src}" data-website-id="${id}"></script>`
 }
+
+/**
+ * 业务事件守卫（spec §6.5）：站点直接写 `window.umami.track(...)` 有两处会炸——
+ * ① SSR 无 `window`；② Umami 脚本被门控拦下（私有页）或加载失败时 `umami` 未挂载。
+ * 本函数把「宿主在不在」收进一处，业务代码只管调用：
+ * - `typeof window === 'undefined'` → 静默 no-op（SSR 安全）；
+ * - `window.umami.track` 非函数 → 静默 no-op（脚本未挂载不报错）；
+ * - 存在 → 透传 `(name, data)`（`data` 省略时不传第二参，保持 Umami 默认事件语义）；
+ * - **永不抛错**：宿主实现抛错也吞掉（像 share-kit 的 `send`），不冒泡到用户动作。
+ * @param {string} name 事件名
+ * @param {Record<string, unknown>} [data] 事件属性（可选）
+ * @returns {boolean} 是否真的送出（宿主缺失或抛错 → false）
+ */
+export function trackEvent(name, data) {
+  if (typeof window === 'undefined') return false
+  const umami = window.umami
+  if (!umami || typeof umami.track !== 'function') return false
+  try {
+    if (data === undefined) umami.track(name)
+    else umami.track(name, data)
+    return true
+  } catch {
+    // fire-and-forget：统计失败不影响用户动作
+    return false
+  }
+}

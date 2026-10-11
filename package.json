@@ -67,5 +67,12 @@
   "devDependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
+  },
+  "hxym18": {
+    "contracts": {
+      "sensitive-prefixes": "1+262b9b7c",
+      "analytics-policy": "1+1e1a92fe",
+      "contracts": "1+189b5717"
+    }
   }
 }

@@ -1,0 +1,16 @@
+{
+  "denyPrefixes": [
+    "/s/",
+    "/r/",
+    "/api/"
+  ],
+  "denyQueryKeys": [
+    "token",
+    "t",
+    "access_token"
+  ],
+  "noindex": {
+    "follow": false,
+    "index": false
+  }
+}
