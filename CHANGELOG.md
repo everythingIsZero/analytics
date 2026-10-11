@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-11
+
+### Added
+
+- **query 感知门控**：`DEFAULT_DENY_QUERY_KEYS = ['token','t','access_token']`；`shouldTrack(input, { denyQueryKeys? })` **先按 query 判定**（大小写不敏感，裸路径带 `?query` 同样解析），命中即不统计；传 `[]` 显式关闭该闸。
+- **客户端组件 `@hxym18/analytics/react/client`**：`UmamiScriptClient` 用 `usePathname()` + `useSearchParams()` 按**运行时**路径 + query 门控，缓存页与 SPA 客户端切换后同样受控；Next 下 `useSearchParams` 须包 `<Suspense>`。
+- **框架无关内核 `@hxym18/analytics/react/client/base`**：`createUmamiScriptClient({ usePathname, useSearchParams })`，非 Next 的 React 站（React Router 等）注入自己的路径 hook；该入口不 import `next`，无 `next` 时可用。
+- `NOINDEX_ROBOTS = { index: false, follow: false }`：私密 / 带 token 页的 `noindex` 载体（Next `metadata.robots` 直接用）。
+- `next` 标为可选 peer（`./react/client` 入口专用）；SSR 与客户端组件共用同一 script 元素渲染实现。
+
+### Changed
+
+- `UmamiScript`（SSR）保留：新增 `denyQueryKeys` 透传；README 改为「客户端组件（运行时路径）+ 按页 SSR」双用法，删除根布局硬编码 `pathname="/"` 的反例。
+
+### Fixed
+
+- 客户端组件在路径 hook 返回 `null`/空串时 **fail-closed**（不产出脚本）——未知路径不得当作根路径放行，与「私有路由绝不外泄」红线一致。
+
 ## [0.1.1] - 2026-10-08
 
 ### Fixed

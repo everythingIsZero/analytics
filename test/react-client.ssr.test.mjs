@@ -80,3 +80,18 @@ test('UmamiScriptClient：allowPrefixes / denyQueryKeys 透传生效', () => {
   const off = makeClient({ pathname: '/ledger', search: 'token=x' })
   assert.match(off.render({ websiteId: 'x', denyQueryKeys: [] }), /data-website-id="x"/)
 })
+
+test('UmamiScriptClient：路径 hook 返回 null/空串 → fail-closed 不产出脚本（未知路径不当公开页）', () => {
+  for (const bad of [null, undefined, '']) {
+    const c = createUmamiScriptClient({ usePathname: () => bad, useSearchParams: () => new URLSearchParams('') })
+    assert.equal(renderToStaticMarkup(React.createElement(c, { websiteId: 'abc' })), '')
+  }
+})
+
+test('包 exports 暴露 react/client/base：非 Next 站无 next 时可取到内核（否则顶层 import next 会加载失败）', async () => {
+  const { readFileSync } = await import('node:fs')
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  assert.equal(pkg.exports['./react/client/base'].import, './src/react-client-base.mjs')
+  const src = readFileSync(new URL('../src/react-client-base.mjs', import.meta.url), 'utf8')
+  assert.ok(!/^import\b[^\n]*from ['"]next\//m.test(src), '内核不得 import next')
+})

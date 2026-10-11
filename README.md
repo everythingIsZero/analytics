@@ -44,8 +44,9 @@ export default function Layout({ children }) {
   （`token` / `t` / `access_token`，大小写不敏感）时返回 `null`，不产出脚本。
 - 因为按运行时路径判定，**缓存页**与 **SPA 客户端切换**后同样受控：切到私有/带 token 路径即停止统计。
 - **Next 下 `useSearchParams` 必须在 `<Suspense>` 边界内**（Next 要求；不包会导致该页无法静态渲染）。
-- 非 Next 的 React 站（如 React Router）：`import { createUmamiScriptClient } from '@hxym18/analytics/react/client'`，
-  注入自己的路径 hook，例如 `createUmamiScriptClient({ usePathname: () => location.pathname, useSearchParams: () => new URLSearchParams(location.search) })`。
+- 非 Next 的 React 站（如 React Router）：`import { createUmamiScriptClient } from '@hxym18/analytics/react/client/base'`，
+  注入自己的路径 hook，例如 `createUmamiScriptClient({ usePathname: () => location.pathname, useSearchParams: () => new URLSearchParams(location.search) })`（`next` 未安装时**必须**用这个入口：`/react/client` 静态 import `next/navigation`，无 next 会加载失败）。
+- 路径 hook 返回 `null`/空串（框架上下文未就绪）时**不产出脚本**（fail-closed：未知路径宁可不统计）。
 
 ### 2. 按页 SSR（`UmamiScript`；给已知 pathname 的服务端组件用）
 

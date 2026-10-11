@@ -7,8 +7,9 @@
  *   <Suspense><UmamiScriptClient websiteId="..." /></Suspense>
  *
  * 按**运行时**路径 + query 判定：命中私有前缀或敏感 query（token/t/access_token）即不挂统计，
- * 缓存页与 SPA 客户端切换后同样受控。非 Next 的 React 站可 import 本文件的
- * `createUmamiScriptClient` 并注入自己的路径 hook（如 React Router 的 `useLocation`）。
+ * 缓存页与 SPA 客户端切换后同样受控。非 Next 的 React 站请用
+ * `@hxym18/analytics/react/client/base` 的 `createUmamiScriptClient`（本入口静态 import
+ * `next/navigation`，无 next 装不上）。
  */
 import { usePathname, useSearchParams } from 'next/navigation'
 import { createUmamiScriptClient } from './react-client-base.mjs'

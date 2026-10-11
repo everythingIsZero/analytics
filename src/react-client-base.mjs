@@ -14,6 +14,7 @@ import { buildScriptElement } from './react-render.mjs'
  *
  * 组件每次渲染都读**当前** pathname + search：缓存页与 SPA 切换后同样受控（RF3）。
  * 敏感 query（默认 token/t/access_token）命中即返回 null（RF1）。
+ * pathname 取不到（hook 返回 null/''）时 **fail-closed**：返回 null，不产出脚本。
  *
  * @param {{
  *   usePathname: () => string | null | undefined,
@@ -32,8 +33,11 @@ export function createUmamiScriptClient(hooks) {
   const useSearchParams = hooks && hooks.useSearchParams
   return function UmamiScriptClient(props) {
     // hooks 必须无条件调用（React hooks 规则），故先取路径/查询，再判空与门控。
-    const pathname = (usePathname && usePathname()) || '/'
+    const pathname = usePathname && usePathname()
     const searchParams = useSearchParams && useSearchParams()
+    // 路径取不到（hook 返回 null/''，如框架上下文未就绪）→ **fail-closed**：不产出脚本。
+    // 与红线一致（私有页绝不外泄）：未知路径宁可不统计，不可当作根路径放行。
+    if (typeof pathname !== 'string' || pathname.length === 0) return null
     const query = searchParams ? String(searchParams.toString()) : ''
     const { websiteId, scriptSrc, allowPrefixes, denyPrefixes, denyQueryKeys } = props || {}
     if (!websiteId) return null
