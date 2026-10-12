@@ -33,3 +33,16 @@ test('UmamiScript：allowPrefixes 白名单生效（非白名单不产出）', (
   assert.equal(render({ websiteId: 'x', pathname: '/mine', allowPrefixes: ['/blog'] }), '')
   assert.match(render({ websiteId: 'x', pathname: '/blog/post', allowPrefixes: ['/blog'] }), /data-website-id="x"/)
 })
+
+test('UmamiScript：hash 路由 pathname 带敏感 hash query → 不产出脚本（Taro/HashRouter）', () => {
+  assert.equal(render({ websiteId: 'x', pathname: '/#/pages/reader/index?shareId=1' }), '')
+  assert.match(render({ websiteId: 'x', pathname: '/#/pages/index/index?tab=1' }), /data-website-id="x"/)
+})
+
+test('UmamiScript：denyHashKeys 透传（覆盖/关闭 hash 闸）', () => {
+  assert.equal(render({ websiteId: 'x', pathname: '/#/x?custom=1', denyHashKeys: ['custom'] }), '')
+  assert.match(
+    render({ websiteId: 'x', pathname: '/#/x?token=1', denyHashKeys: [] }),
+    /data-website-id="x"/,
+  )
+})

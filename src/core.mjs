@@ -27,6 +27,24 @@ export const DEFAULT_DENY_PREFIXES = Object.freeze(['/s/', '/r/', '/api/'])
 export const DEFAULT_DENY_QUERY_KEYS = Object.freeze(['token', 't', 'access_token'])
 
 /**
+ * 默认拦截的敏感 **hash query** key：hash 路由（Taro H5 / HashRouter）把路由与参数放在
+ * `#` 之后，`location.search` 为空、pathname 恒为 `/`（Taro 阅读页形如
+ * `/#/pages/reader/index?shareId=…`）——只扫 `?search` 会漏拦，token 仍会上报。
+ *
+ * 覆盖面与 nuantie 现有本地门控 `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 对齐
+ * （`shareId`/`share`/`token`/`ticket`），并补齐 search 侧已有的敏感键（`t`/`access_token`）。
+ * 比较时统一小写（`?ShareId=` 与 `?shareid=` 等价）。
+ */
+export const DEFAULT_DENY_HASH_KEYS = Object.freeze([
+  'token',
+  't',
+  'access_token',
+  'shareid',
+  'share',
+  'ticket',
+])
+
+/**
  * 私密/带 token 页的 robots 元数据：**必须 noindex**，避免凭证页被搜索引擎收录。
  * 与门控互补——门控管「不上报统计」，此常量管「不被索引」，二者都要。
  * Next 用法：`export const metadata = { robots: NOINDEX_ROBOTS }`。
@@ -66,12 +84,41 @@ export function resolveQueryKeys(input) {
 }
 
 /**
+ * 解析 hash 内 query 的 key 集合：接受完整 URL 或裸路径（含 `#...?query`），
+ * 返回小写 key 数组；无 hash / hash 内无 query / 非法 → `[]`。
+ *
+ * 为什么单独一个：hash 路由的参数**不在** `URL.searchParams` 里（Taro H5 `location.search` 为空），
+ * 必须从 `URL.hash`（形如 `#/pages/reader/index?shareId=1`）里再取一次 `?` 后的 query。
+ * @param {unknown} input
+ * @returns {string[]}
+ */
+export function resolveHashQueryKeys(input) {
+  const s = typeof input === 'string' ? input : ''
+  if (!s) return []
+  let hash = ''
+  try {
+    hash = new URL(s, 'http://localhost').hash
+  } catch {
+    return []
+  }
+  if (!hash) return []
+  const qi = hash.indexOf('?')
+  if (qi === -1) return []
+  try {
+    return [...new URLSearchParams(hash.slice(qi + 1)).keys()].map((k) => k.toLowerCase())
+  } catch {
+    return []
+  }
+}
+
+/**
  * 是否应挂统计。
  * @param {unknown} input 当前路径（或完整 URL；裸路径可带 `?query`）
- * @param {{ allowPrefixes?: string[], denyPrefixes?: string[], denyQueryKeys?: string[] }} [opts]
+ * @param {{ allowPrefixes?: string[], denyPrefixes?: string[], denyQueryKeys?: string[], denyHashKeys?: string[] }} [opts]
  *   allowPrefixes 给了则**只有**命中白名单才统计（登录墙/工具站收窄到公开内容页用）；
  *   denyPrefixes 覆盖默认拦截前缀（默认见 DEFAULT_DENY_PREFIXES）；
- *   denyQueryKeys 覆盖默认敏感 query key（默认见 DEFAULT_DENY_QUERY_KEYS；传 `[]` 显式关闭该闸）。
+ *   denyQueryKeys 覆盖默认敏感 query key（默认见 DEFAULT_DENY_QUERY_KEYS；传 `[]` 显式关闭该闸）；
+ *   denyHashKeys 覆盖默认敏感 **hash query** key（默认见 DEFAULT_DENY_HASH_KEYS；传 `[]` 显式关闭该闸）。
  * @returns {boolean}
  */
 export function shouldTrack(input, opts) {
@@ -83,6 +130,14 @@ export function shouldTrack(input, opts) {
   if (denyKeys.length) {
     const keys = resolveQueryKeys(input)
     if (keys.some((k) => denyKeys.includes(k))) return false
+  }
+  // 再查 hash query：hash 路由（Taro H5）的 token 在 `#` 之后，独立于 search 的那道闸。
+  const denyHash = Array.isArray(o.denyHashKeys)
+    ? o.denyHashKeys.map((k) => String(k).toLowerCase())
+    : DEFAULT_DENY_HASH_KEYS
+  if (denyHash.length) {
+    const hkeys = resolveHashQueryKeys(input)
+    if (hkeys.some((k) => denyHash.includes(k))) return false
   }
   const path = resolvePathname(input)
   if (Array.isArray(o.allowPrefixes)) {

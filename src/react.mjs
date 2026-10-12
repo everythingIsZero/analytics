@@ -18,13 +18,15 @@ import { buildScriptElement } from './react-render.mjs'
  *   scriptSrc?: string,
  *   allowPrefixes?: string[],
  *   denyPrefixes?: string[],
- *   denyQueryKeys?: string[]
+ *   denyQueryKeys?: string[],
+ *   denyHashKeys?: string[]
  * }} props
  */
 export function UmamiScript(props) {
-  const { websiteId, pathname, scriptSrc, allowPrefixes, denyPrefixes, denyQueryKeys } = props || {}
+  const { websiteId, pathname, scriptSrc, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys } =
+    props || {}
   if (!websiteId) return null
-  if (!shouldTrack(pathname, { allowPrefixes, denyPrefixes, denyQueryKeys })) return null
+  if (!shouldTrack(pathname, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })) return null
   return buildScriptElement({ websiteId, scriptSrc })
 }
 

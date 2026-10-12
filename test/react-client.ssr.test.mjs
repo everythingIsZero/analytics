@@ -15,11 +15,12 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { createUmamiScriptClient } from '../src/react-client-base.mjs'
 
 /** 造一个带可变导航 state 的客户端组件；render 时可改 state 模拟 SPA 切换。 */
-function makeClient(initial = { pathname: '/', search: '' }) {
+function makeClient(initial = { pathname: '/', search: '', hash: '' }) {
   const state = { ...initial }
   const hooks = {
     usePathname: () => state.pathname,
     useSearchParams: () => new URLSearchParams(state.search),
+    useHash: () => state.hash,
   }
   const UmamiScriptClient = createUmamiScriptClient(hooks)
   return {
@@ -79,6 +80,38 @@ test('UmamiScriptClient：allowPrefixes / denyQueryKeys 透传生效', () => {
   assert.equal(render({ websiteId: 'x', allowPrefixes: ['/blog'] }), '')
   const off = makeClient({ pathname: '/ledger', search: 'token=x' })
   assert.match(off.render({ websiteId: 'x', denyQueryKeys: [] }), /data-website-id="x"/)
+})
+
+test('UmamiScriptClient：hash 路由——useHash 返回带敏感键的 hash → null，不产出脚本（Taro/HashRouter）', () => {
+  const { render } = makeClient({ pathname: '/', search: '', hash: '#/pages/reader/index?shareId=1' })
+  assert.equal(render({ websiteId: 'abc-123' }), '')
+})
+
+test('UmamiScriptClient：hash 路由——公开 hash query（无敏感键）仍产出脚本', () => {
+  const { render } = makeClient({ pathname: '/', search: '', hash: '#/pages/index/index?tab=1' })
+  assert.match(render({ websiteId: 'abc-123' }), /data-website-id="abc-123"/)
+})
+
+test('UmamiScriptClient：SPA 切换——公开 hash 追加 shareId 后重渲染不再产出脚本（RF3）', () => {
+  const client = makeClient({ pathname: '/', search: '', hash: '#/pages/index/index' })
+  assert.match(client.render({ websiteId: 'x' }), /data-website-id="x"/)
+  client.state.hash = '#/pages/reader/index?shareId=1'
+  assert.equal(client.render({ websiteId: 'x' }), '', '切到带 shareId 的 hash 后不得再产出脚本')
+})
+
+test('UmamiScriptClient：未注入 useHash 的旧站行为不变（hash 不进判定）', () => {
+  const c = createUmamiScriptClient({
+    usePathname: () => '/',
+    useSearchParams: () => new URLSearchParams(''),
+  })
+  assert.match(renderToStaticMarkup(React.createElement(c, { websiteId: 'x' })), /data-website-id="x"/)
+})
+
+test('UmamiScriptClient：denyHashKeys 透传（覆盖/关闭 hash 闸）', () => {
+  const custom = makeClient({ pathname: '/', search: '', hash: '#/x?custom=1' })
+  assert.equal(custom.render({ websiteId: 'x', denyHashKeys: ['custom'] }), '')
+  const off = makeClient({ pathname: '/', search: '', hash: '#/x?token=1' })
+  assert.match(off.render({ websiteId: 'x', denyHashKeys: [] }), /data-website-id="x"/)
 })
 
 test('UmamiScriptClient：路径 hook 返回 null/空串 → fail-closed 不产出脚本（未知路径不当公开页）', () => {

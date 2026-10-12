@@ -42,10 +42,13 @@ export default function Layout({ children }) {
 
 - 组件读**当前** `usePathname()` + `useSearchParams()`；命中私有前缀（`/s/` `/r/` `/api/`）或敏感 query
   （`token` / `t` / `access_token`，大小写不敏感）时返回 `null`，不产出脚本。
+- **hash 路由站**（Taro H5 / React Router HashRouter；`location.search` 为空、token 在 `#` 后）另注入
+  `useHash: () => location.hash`（见下「非 Next 的 React 站」），命中默认敏感 hash key
+  （`token` / `t` / `access_token` / `shareId` / `share` / `ticket`）同样返回 `null`。
 - 因为按运行时路径判定，**缓存页**与 **SPA 客户端切换**后同样受控：切到私有/带 token 路径即停止统计。
 - **Next 下 `useSearchParams` 必须在 `<Suspense>` 边界内**（Next 要求；不包会导致该页无法静态渲染）。
 - 非 Next 的 React 站（如 React Router）：`import { createUmamiScriptClient } from '@hxym18/analytics/react/client/base'`，
-  注入自己的路径 hook，例如 `createUmamiScriptClient({ usePathname: () => location.pathname, useSearchParams: () => new URLSearchParams(location.search) })`（`next` 未安装时**必须**用这个入口：`/react/client` 静态 import `next/navigation`，无 next 会加载失败）。
+  注入自己的路径 hook，例如 `createUmamiScriptClient({ usePathname: () => location.pathname, useSearchParams: () => new URLSearchParams(location.search), useHash: () => location.hash })`（`next` 未安装时**必须**用这个入口：`/react/client` 静态 import `next/navigation`，无 next 会加载失败）。`useHash` 可选，仅 hash 路由站需要。
 - 路径 hook 返回 `null`/空串（框架上下文未就绪）时**不产出脚本**（fail-closed：未知路径宁可不统计）。
 
 ### 2. 按页 SSR（`UmamiScript`；给已知 pathname 的服务端组件用）
@@ -57,7 +60,8 @@ import { UmamiScript } from '@hxym18/analytics/react'
 <UmamiScript websiteId="<你的 umami website id>" pathname={`/blog/${slug}`} />
 ```
 
-- 用于**已知具体 pathname** 的服务端页面；命中私有前缀或敏感 query 时组件返回 `null`，不产出脚本。
+- 用于**已知具体 pathname** 的服务端页面；命中私有前缀、敏感 query 或 hash query 时组件返回 `null`，不产出脚本。
+  hash 路由站可直接传入带 hash 的完整路径（如 `pathname="/#/pages/reader/index?shareId=1"`）。
 - ⚠️ 不要在根布局硬编码 `pathname="/"`：SSR 拿不到当前路由时这样写会让私有页也判定为公开页。
   需要全局挂载请用上面的**客户端组件**。
 - 只统计公开内容页的站可用 `allowPrefixes` 收窄（例如 `['/blog', '/poems']`）。
@@ -109,10 +113,17 @@ trackEvent('export_docx') // data 省略时不传第二参
 
 - 默认拦截前缀：`/s/`（分享 token）、`/r/`、`/api/`。
 - 默认拦截敏感 query key：`token` / `t` / `access_token`（小写比较，`?Token=` 同样拦）。
-- `shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys })`：`input` 可为完整 URL 或带 `?query` 的裸路径；
-  先查敏感 query（命中即不统计），再按前缀判定。`allowPrefixes` 给了则只有命中白名单才统计；
-  `denyPrefixes` / `denyQueryKeys` 覆盖默认（`denyQueryKeys: []` 显式关闭该闸）。
-- **分享页 / 带 token 路由不得挂全局统计**（URL 含 token 即泄漏）——本包默认满足。
+- 默认拦截敏感 **hash query** key：`token` / `t` / `access_token` / `shareId` / `share` / `ticket`
+  （小写比较）——Taro H5 等 hash 路由把参数放在 `#` 之后（`/#/pages/reader/index?shareId=…`），
+  `location.search` 为空、pathname 恒为 `/`，只扫 search 会漏拦；覆盖面与 nuantie 本地
+  `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 对齐。
+- `shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })`：`input` 可为完整 URL 或带
+  `?query`/`#hash?query` 的裸路径；**先查敏感 query、再查 hash query**（任一命中即不统计），最后按前缀判定。
+  `allowPrefixes` 给了则只有命中白名单才统计；`denyPrefixes` / `denyQueryKeys` / `denyHashKeys` 覆盖默认
+  （`denyQueryKeys: []` / `denyHashKeys: []` 各自显式关闭对应闸；追加键用展开默认常量，如
+  `denyHashKeys: [...DEFAULT_DENY_HASH_KEYS, 'custom']`）。
+- **分享页 / 带 token 路由不得挂全局统计**（URL 含 token 即泄漏）——本包默认满足（含 hash 路由）。
+- `resolveHashQueryKeys(input)`：取 hash 内 query 的小写 key（无 hash/无 query/非法 → `[]`），供需要单独取键的消费方用。
 
 ## 测试
 

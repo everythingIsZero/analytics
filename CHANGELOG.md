@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- **hash 路由门控**：`DEFAULT_DENY_HASH_KEYS = ['token','t','access_token','shareid','share','ticket']`；`shouldTrack(input, { denyHashKeys? })` 在 query 闸之外**新增 hash query 闸**（从 `URL.hash` 的 `?` 后取 key，大小写不敏感），命中即不统计；传 `[]` 显式关闭该闸。Taro H5 等 hash 路由（`/#/pages/reader/index?shareId=…`，`location.search` 为空、pathname 恒为 `/`）不再漏拦，覆盖面与 nuantie 本地 `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 对齐。
+- `resolveHashQueryKeys(input)`：取 hash 内 query 的小写 key（无 hash/无 query/非法 → `[]`）。
+- 客户端组件内核 `createUmamiScriptClient(hooks)` 新增可选 `useHash` hook（hash 路由站注入 `() => location.hash`）；`UmamiScriptClient` / `UmamiScript` 新增 `denyHashKeys` 透传。
+
+### Changed
+
+- `shouldTrack` 判定顺序：敏感 query → **敏感 hash query** → 前缀（原来只有 query → 前缀）。无 hash 的既有行为不变。
+
 ## [0.2.0] - 2026-10-11
 
 ### Added
