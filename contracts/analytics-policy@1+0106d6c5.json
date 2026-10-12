@@ -1,4 +1,12 @@
 {
+  "denyHashKeys": [
+    "token",
+    "t",
+    "access_token",
+    "shareid",
+    "share",
+    "ticket"
+  ],
   "denyPrefixes": [
     "/s/",
     "/r/",
