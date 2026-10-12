@@ -84,11 +84,13 @@ export function resolveQueryKeys(input) {
 }
 
 /**
- * 解析 hash 内 query 的 key 集合：接受完整 URL 或裸路径（含 `#...?query`），
+ * 解析 hash 内 query 的 key 集合：接受完整 URL 或裸路径（含 `#...?query` / `#...&query`），
  * 返回小写 key 数组；无 hash / hash 内无 query / 非法 → `[]`。
  *
  * 为什么单独一个：hash 路由的参数**不在** `URL.searchParams` 里（Taro H5 `location.search` 为空），
- * 必须从 `URL.hash`（形如 `#/pages/reader/index?shareId=1`）里再取一次 `?` 后的 query。
+ * 必须从 `URL.hash`（形如 `#/pages/reader/index?shareId=1`）里再取一次 `?`/`&` 后的 query。
+ * 起点取 hash 内**首个 `?` 或 `&`**——有些 hash 路由把参数直接接在路径后（`#/x&token=1`），
+ * 与 nuantie 本地门控 `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 口径对齐，否则 `&key=` 会漏拦。
  * @param {unknown} input
  * @returns {string[]}
  */
@@ -102,7 +104,7 @@ export function resolveHashQueryKeys(input) {
     return []
   }
   if (!hash) return []
-  const qi = hash.indexOf('?')
+  const qi = hash.search(/[?&]/)
   if (qi === -1) return []
   try {
     return [...new URLSearchParams(hash.slice(qi + 1)).keys()].map((k) => k.toLowerCase())

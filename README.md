@@ -116,14 +116,20 @@ trackEvent('export_docx') // data 省略时不传第二参
 - 默认拦截敏感 **hash query** key：`token` / `t` / `access_token` / `shareId` / `share` / `ticket`
   （小写比较）——Taro H5 等 hash 路由把参数放在 `#` 之后（`/#/pages/reader/index?shareId=…`），
   `location.search` 为空、pathname 恒为 `/`，只扫 search 会漏拦；覆盖面与 nuantie 本地
-  `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 对齐。
+  `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 对齐。hash 内 query 的起点取**首个 `?` 或 `&`**，
+  故 `#/x&token=1`（hash 里没有 `?`）同样拦。
+- **search 与 hash 的默认敏感键为何不同**：search 侧只拦 `token` / `t` / `access_token`；hash 侧另含
+  `shareId` / `share` / `ticket`。后三个是 Taro hash 路由（nuantie 阅读/报名页）的**路由参数**，
+  只出现在 `#` 之后，**不放进 search 默认**——普通站 `?share=…` / `?ticket=…` 未必是凭证，扩大 search
+  默认会破既有契约、误拦正常统计。站点若确有 search 侧敏感键，用
+  `denyQueryKeys: [...DEFAULT_DENY_QUERY_KEYS, 'share']` 显式追加（只加不减）。
 - `shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })`：`input` 可为完整 URL 或带
   `?query`/`#hash?query` 的裸路径；**先查敏感 query、再查 hash query**（任一命中即不统计），最后按前缀判定。
   `allowPrefixes` 给了则只有命中白名单才统计；`denyPrefixes` / `denyQueryKeys` / `denyHashKeys` 覆盖默认
   （`denyQueryKeys: []` / `denyHashKeys: []` 各自显式关闭对应闸；追加键用展开默认常量，如
   `denyHashKeys: [...DEFAULT_DENY_HASH_KEYS, 'custom']`）。
 - **分享页 / 带 token 路由不得挂全局统计**（URL 含 token 即泄漏）——本包默认满足（含 hash 路由）。
-- `resolveHashQueryKeys(input)`：取 hash 内 query 的小写 key（无 hash/无 query/非法 → `[]`），供需要单独取键的消费方用。
+- `resolveHashQueryKeys(input)`：取 hash 内 query 的小写 key（从首个 `?` 或 `&` 起解析；无 hash/无 query/非法 → `[]`），供需要单独取键的消费方用。
 
 ## 测试
 

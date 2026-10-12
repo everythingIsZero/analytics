@@ -42,6 +42,18 @@ test('shouldTrack：敏感键混在 hash 的多参 query 里也拦（不是只�
   assert.equal(shouldTrack('/#/pages/reader/index?v=2&shareId=1&utm=x'), false)
 })
 
+test('shouldTrack：hash 内以 & 起头的 query（hash 里没有 ?）同样拦——与 nuantie TOKEN_RE 口径一致（改前漏拦）', () => {
+  assert.equal(shouldTrack('/#/x&token=1'), false)
+  assert.equal(shouldTrack('/#/pages/reader/index&shareId=1'), false)
+  assert.equal(shouldTrack('/#/x&a=1&ticket=2'), false)
+  assert.equal(shouldTrack('/#/x&share=1'), false)
+  assert.equal(shouldTrack('/#/x&t=1'), false)
+  assert.equal(shouldTrack('/#/x&access_token=1'), false)
+  assert.equal(shouldTrack('/#/x&ShareId=1'), false, '大小写不敏感')
+  // 公开：& 起头但无敏感键仍统计
+  assert.equal(shouldTrack('/#/x&tab=1'), true)
+})
+
 test('shouldTrack：denyHashKeys 可覆盖；传 [] 显式关闭 hash 闸', () => {
   // 覆盖：给了数组则以数组为准（默认敏感键不再生效，与 denyQueryKeys 语义一致）
   assert.equal(shouldTrack('/#/x?token=1', { denyHashKeys: ['custom'] }), true)
@@ -74,6 +86,12 @@ test('resolveHashQueryKeys：取 hash 内 query 的小写 key；无 hash / 无 q
   assert.deepEqual(resolveHashQueryKeys('https://x/no-hash'), [])
   assert.deepEqual(resolveHashQueryKeys(''), [])
   assert.deepEqual(resolveHashQueryKeys(undefined), [])
+})
+
+test('resolveHashQueryKeys：hash 内无 ? 但有 & 时，从首个 & 起解析（改前落 []）', () => {
+  assert.deepEqual(resolveHashQueryKeys('/#/x&token=1'), ['token'])
+  assert.deepEqual(resolveHashQueryKeys('/#/x&a=1&t=2'), ['a', 't'])
+  assert.deepEqual(resolveHashQueryKeys('https://x/#/p/index&shareId=abc'), ['shareid'])
 })
 
 test('shouldTrack：无 hash 的既有行为不回归（默认前缀 + search query）', () => {

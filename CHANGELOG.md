@@ -2,6 +2,16 @@
 
 本仓遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式，版本语义按 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Fixed
+
+- `resolveHashQueryKeys` 从 hash 内**首个 `?` 或 `&`** 起解析（原只认 `?`）：hash 路由把参数直接接在路径后（`#/x&token=1`，hash 里没有 `?`）时不再漏拦，覆盖面与 nuantie 本地 `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 完全对齐。
+
+### Notes（口径决策，非行为变更）
+
+- **search / hash 默认敏感键不对称**（有意为之）：search 侧维持 `token` / `t` / `access_token`；hash 侧另含 `shareId` / `share` / `ticket`。后三个是 Taro hash 路由（nuantie 阅读/报名页）的**路由参数**，只出现在 `#` 之后；扩大 search 默认会误拦普通站的 `?share=` / `?ticket=` 并破坏既有契约。站点确有 search 侧敏感键时用 `denyQueryKeys: [...DEFAULT_DENY_QUERY_KEYS, 'share']` 显式追加。
+
 ## [0.3.0] - 2026-10-12
 
 ### Added
