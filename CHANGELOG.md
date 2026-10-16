@@ -12,6 +12,12 @@
 
 - **search / hash 默认敏感键不对称**（有意为之）：search 侧维持 `token` / `t` / `access_token`；hash 侧另含 `shareId` / `share` / `ticket`。后三个是 Taro hash 路由（nuantie 阅读/报名页）的**路由参数**，只出现在 `#` 之后；扩大 search 默认会误拦普通站的 `?share=` / `?ticket=` 并破坏既有契约。站点确有 search 侧敏感键时用 `denyQueryKeys: [...DEFAULT_DENY_QUERY_KEYS, 'share']` 显式追加。
 
+## [0.4.0] - 2026-10-16
+
+### Added
+
+- **脚本附加属性 `attrs`（P-1）**：`buildScriptTag({ websiteId, scriptSrc, attrs })` 与 React 组件（`UmamiScript` / `createUmamiScriptClient` / `UmamiScriptClient`）都支持 `attrs`。hash 路由站（Taro H5 / HashRouter）传 `{ 'data-exclude-hash': 'true' }` 即可让 Umami 剥掉 URL 里的 hash——**原先只吃 `{websiteId, scriptSrc}`，站点只能自建标签（并绕过共享转义）**。键白名单 `/^data-[a-z0-9-]+$/i`，非 `data-*` 键抛 `TypeError`（静默忽略会变成「传了没生效」的隐蔽 bug）；值经 `escapeAttr` 转义；未给 `attrs` 时标签与既有形状**逐字相同**。校验与归集收在 `core.resolveAttrs`，字符串与 React 两条路径同一实现、不漂移。
+
 ## [0.3.0] - 2026-10-12
 
 ### Added
