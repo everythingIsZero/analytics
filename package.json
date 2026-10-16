@@ -1,6 +1,6 @@
 {
   "name": "@hxym18/analytics",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "统计接入 SDK：Umami 脚本 + 路径门控（带 token/私有路由绝不挂统计）",
   "type": "module",
   "license": "MIT",

@@ -163,8 +163,12 @@ function escapeAttr(v) {
  *  「传了没生效」的隐蔽 bug，故装配期直接抛错——fail-closed。 */
 const ATTR_KEY_RE = /^data-[a-z0-9-]+$/i
 
+/** 本标签已自有的属性：`attrs` 再传即**覆盖**（React 路径静默改写 websiteId；字符串路径产出重复属性、
+ *  浏览器只认第一个 → 传了没生效）。两个方向都是隐蔽 bug，故与白名单同口径抛错。 */
+const RESERVED_ATTR_KEYS = Object.freeze(['data-website-id'])
+
 /**
- * 校验并归集附加属性（P-1）：`{ 'data-exclude-hash': 'true' }` → 原对象；键非 `data-*` → `TypeError`。
+ * 校验并归集附加属性（P-1）：`{ 'data-exclude-hash': 'true' }` → 原对象；键非 `data-*` 或命中保留键 → `TypeError`。
  *
  * 为什么需要：Umami 的 URL 上报默认**含 hash**，hash 路由站（Taro H5 / HashRouter）必须注入
  * `data-exclude-hash="true"`，否则门控只拦挂载时刻、SPA 内导航到带 token 的 hash 路由时仍会上报。
@@ -183,6 +187,9 @@ export function resolveAttrs(attrs, where) {
   for (const [key, value] of Object.entries(attrs)) {
     if (!ATTR_KEY_RE.test(key)) {
       throw new TypeError(`${where}: attrs 键须为 data-*（收到 "${key}"）`)
+    }
+    if (RESERVED_ATTR_KEYS.includes(key.toLowerCase())) {
+      throw new TypeError(`${where}: attrs 不得覆盖本标签自有属性 "${key}"（websiteId 走顶层选项）`)
     }
     out[key] = String(value)
   }

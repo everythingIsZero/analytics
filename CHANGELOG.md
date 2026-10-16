@@ -12,6 +12,12 @@
 
 - **search / hash 默认敏感键不对称**（有意为之）：search 侧维持 `token` / `t` / `access_token`；hash 侧另含 `shareId` / `share` / `ticket`。后三个是 Taro hash 路由（nuantie 阅读/报名页）的**路由参数**，只出现在 `#` 之后；扩大 search 默认会误拦普通站的 `?share=` / `?ticket=` 并破坏既有契约。站点确有 search 侧敏感键时用 `denyQueryKeys: [...DEFAULT_DENY_QUERY_KEYS, 'share']` 显式追加。
 
+## [0.4.1] - 2026-10-16
+
+### Fixed
+
+- **`attrs` 不得覆盖标签自有属性（代码复核发现）**：`attrs: { 'data-website-id': … }` 原先在字符串路径产出**重复属性**（浏览器只认第一个 → 传了没生效），在 React 路径**静默改写** `websiteId`（统计进错站）。现与键白名单同口径抛 `TypeError`——站点 id 只走顶层 `websiteId` 选项。
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

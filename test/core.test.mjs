@@ -147,3 +147,7 @@ test('NOINDEX_ROBOTS：私密/带 token 页用（index/follow 均 false）', () 
   assert.deepEqual(NOINDEX_ROBOTS, { index: false, follow: false })
   assert.ok(Object.isFrozen(NOINDEX_ROBOTS))
 })
+
+test('buildScriptTag：attrs 不得覆盖 data-website-id（重复属性/静默改站点）', () => {
+  assert.throws(() => buildScriptTag({ websiteId: 'x', attrs: { 'data-website-id': 'x2' } }), TypeError)
+})

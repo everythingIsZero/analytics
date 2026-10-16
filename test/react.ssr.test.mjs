@@ -55,3 +55,7 @@ test('UmamiScript：denyHashKeys 透传（覆盖/关闭 hash 闸）', () => {
     /data-website-id="x"/,
   )
 })
+
+test('UmamiScript：attrs 传 data-website-id → 抛 TypeError（不得静默改站点）', () => {
+  assert.throws(() => render({ websiteId: 'x', pathname: '/', attrs: { 'data-website-id': 'y' } }), TypeError)
+})
