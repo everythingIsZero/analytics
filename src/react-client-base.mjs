@@ -27,6 +27,7 @@ import { buildScriptElement } from './react-render.mjs'
  * @returns {(props: {
  *   websiteId?: string,
  *   scriptSrc?: string,
+ *   attrs?: Record<string, string>,
  *   allowPrefixes?: string[],
  *   denyPrefixes?: string[],
  *   denyQueryKeys?: string[],
@@ -47,11 +48,11 @@ export function createUmamiScriptClient(hooks) {
     if (typeof pathname !== 'string' || pathname.length === 0) return null
     const query = searchParams ? String(searchParams.toString()) : ''
     const hashStr = typeof hash === 'string' ? hash : ''
-    const { websiteId, scriptSrc, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys } =
+    const { websiteId, scriptSrc, attrs, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys } =
       props || {}
     if (!websiteId) return null
     const input = `${pathname}${query ? `?${query}` : ''}${hashStr}`
     if (!shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })) return null
-    return buildScriptElement({ websiteId, scriptSrc })
+    return buildScriptElement({ websiteId, scriptSrc, attrs })
   }
 }

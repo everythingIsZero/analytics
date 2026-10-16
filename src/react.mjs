@@ -16,6 +16,7 @@ import { buildScriptElement } from './react-render.mjs'
  *   websiteId: string,
  *   pathname?: string,
  *   scriptSrc?: string,
+ *   attrs?: Record<string, string>,
  *   allowPrefixes?: string[],
  *   denyPrefixes?: string[],
  *   denyQueryKeys?: string[],
@@ -23,11 +24,11 @@ import { buildScriptElement } from './react-render.mjs'
  * }} props
  */
 export function UmamiScript(props) {
-  const { websiteId, pathname, scriptSrc, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys } =
+  const { websiteId, pathname, scriptSrc, attrs, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys } =
     props || {}
   if (!websiteId) return null
   if (!shouldTrack(pathname, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })) return null
-  return buildScriptElement({ websiteId, scriptSrc })
+  return buildScriptElement({ websiteId, scriptSrc, attrs })
 }
 
 export default UmamiScript

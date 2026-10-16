@@ -44,7 +44,9 @@ export default function Layout({ children }) {
   （`token` / `t` / `access_token`，大小写不敏感）时返回 `null`，不产出脚本。
 - **hash 路由站**（Taro H5 / React Router HashRouter；`location.search` 为空、token 在 `#` 后）另注入
   `useHash: () => location.hash`（见下「非 Next 的 React 站」），命中默认敏感 hash key
-  （`token` / `t` / `access_token` / `shareId` / `share` / `ticket`）同样返回 `null`。
+  （`token` / `t` / `access_token` / `shareId` / `share` / `ticket`）同样返回 `null`；
+  **并务必同时传 `attrs={{ 'data-exclude-hash': 'true' }}`**——门控只管挂载时刻，SPA 内后续导航到带
+  token 的 hash 路由仍会被 Umami 上报（见「无框架 / 静态站」）。
 - 因为按运行时路径判定，**缓存页**与 **SPA 客户端切换**后同样受控：切到私有/带 token 路径即停止统计。
 - **Next 下 `useSearchParams` 必须在 `<Suspense>` 边界内**（Next 要求；不包会导致该页无法静态渲染）。
 - 非 Next 的 React 站（如 React Router）：`import { createUmamiScriptClient } from '@hxym18/analytics/react/client/base'`，
@@ -87,10 +89,19 @@ export const metadata = { robots: NOINDEX_ROBOTS } // { index: false, follow: fa
 ```js
 import { shouldTrack, buildScriptTag } from '@hxym18/analytics'
 
-if (shouldTrack(location.pathname)) {
+if (shouldTrack(location.pathname + location.search + location.hash)) {
   document.head.insertAdjacentHTML('beforeend', buildScriptTag({ websiteId: '<id>' }))
 }
 ```
+
+**hash 路由站（Taro H5 / HashRouter）必须再传 `attrs`**：Umami 的 URL 上报默认**含 hash**，而门控只在挂载那一刻判定——SPA 内从公开页导航到 `#/pages/reader?shareId=…` 时 token 仍会上报。传 `data-exclude-hash` 让 tracker 自己剥 hash：
+
+```js
+buildScriptTag({ websiteId: '<id>', attrs: { 'data-exclude-hash': 'true' } })
+```
+
+- `attrs` 键白名单：只放行 `data-*`（其余如 `src` / `onload` / `id` 抛 `TypeError`——静默忽略会变成「传了没生效」的隐蔽 bug）；值自动转义，不会破标签。
+- React 站同口径：`<UmamiScript … attrs={{ 'data-exclude-hash': 'true' }} />` / `<UmamiScriptClient … attrs={…} />`。
 
 ## 业务事件（自定义事件）
 

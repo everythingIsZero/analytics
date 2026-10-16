@@ -31,7 +31,15 @@ export interface ShouldTrackOptions {
 
 export function shouldTrack(input: unknown, opts?: ShouldTrackOptions): boolean
 
-export function buildScriptTag(opts: { websiteId: string; scriptSrc?: string }): string
+/**
+ * 产出 Umami `<script>` 标签（纯字符串，供无框架/静态站内联）。
+ * `attrs` 供附加属性（P-1）：键须 `data-*`，否则抛 `TypeError`；值自动转义。
+ */
+export function buildScriptTag(opts: {
+  websiteId: string
+  scriptSrc?: string
+  attrs?: Record<string, string>
+}): string
 
 /**
  * 业务事件守卫（spec §6.5）。SSR 或 `window.umami.track` 未挂载时**静默 no-op**，永不抛错

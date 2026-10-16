@@ -111,6 +111,32 @@ test('buildScriptTag：属性值转义（防破标签/注入）', () => {
   assert.match(tag, /src="https:\/\/x\/y\?a=1&amp;b=2"/)
 })
 
+test('buildScriptTag：attrs 追加到标签且值转义（P-1 hash 路由站注入 data-exclude-hash）', () => {
+  const tag = buildScriptTag({ websiteId: 'abc-123', attrs: { 'data-exclude-hash': 'true' } })
+  assert.match(tag, /data-exclude-hash="true"/)
+  assert.match(tag, /data-website-id="abc-123" data-exclude-hash="true"><\/script>$/)
+})
+
+test('buildScriptTag：attrs 非 data-* 键抛 TypeError（fail-closed，不静默丢）', () => {
+  assert.throws(() => buildScriptTag({ websiteId: 'x', attrs: { onload: 'alert(1)' } }), TypeError)
+  assert.throws(() => buildScriptTag({ websiteId: 'x', attrs: { src: 'https://evil/x.js' } }), TypeError)
+  assert.throws(() => buildScriptTag({ websiteId: 'x', attrs: { id: 'other' } }), TypeError)
+})
+
+test('buildScriptTag：attrs 值转义（防破标签/注入）', () => {
+  const tag = buildScriptTag({ websiteId: 'x', attrs: { 'data-note': 'a"b<c>&d' } })
+  assert.ok(!tag.includes('a"b'), '原始引号不得出现在标签里')
+  assert.match(tag, /data-note="a&quot;b&lt;c&gt;&amp;d"/)
+})
+
+test('buildScriptTag：未给/空 attrs 时标签与既有形状逐字相同（不破存量）', () => {
+  const base = '<script defer src="https://u.hxym18.com/script.js" data-website-id="x"></script>'
+  assert.equal(buildScriptTag({ websiteId: 'x' }), base)
+  assert.equal(buildScriptTag({ websiteId: 'x', attrs: {} }), base)
+  assert.equal(buildScriptTag({ websiteId: 'x', attrs: null }), base)
+  assert.equal(buildScriptTag({ websiteId: 'x', attrs: undefined }), base)
+})
+
 test('DEFAULT_DENY_PREFIXES：包含 /s/ 与 /r/', () => {
   assert.ok(DEFAULT_DENY_PREFIXES.includes('/s/'))
   assert.ok(DEFAULT_DENY_PREFIXES.includes('/r/'))

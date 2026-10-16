@@ -159,16 +159,53 @@ function escapeAttr(v) {
     .replace(/"/g, '&quot;')
 }
 
+/** 允许的附加属性键：只放行 `data-*`（P-1）。其余（`src`/`onload`/`id`…）会被静默忽略成
+ *  「传了没生效」的隐蔽 bug，故装配期直接抛错——fail-closed。 */
+const ATTR_KEY_RE = /^data-[a-z0-9-]+$/i
+
+/**
+ * 校验并归集附加属性（P-1）：`{ 'data-exclude-hash': 'true' }` → 原对象；键非 `data-*` → `TypeError`。
+ *
+ * 为什么需要：Umami 的 URL 上报默认**含 hash**，hash 路由站（Taro H5 / HashRouter）必须注入
+ * `data-exclude-hash="true"`，否则门控只拦挂载时刻、SPA 内导航到带 token 的 hash 路由时仍会上报。
+ * 本包原先只吃 `{websiteId, scriptSrc}`，站点只能自建标签（并绕过共享转义）。
+ *
+ * @param {Record<string, unknown>|null|undefined} attrs
+ * @param {string} where 报错前缀（调用方名）
+ * @returns {Record<string, string>} 空/未给 → `{}`（调用方据此产出与既有形状逐字相同的标签）
+ */
+export function resolveAttrs(attrs, where) {
+  if (attrs == null) return {}
+  if (typeof attrs !== 'object' || Array.isArray(attrs)) {
+    throw new TypeError(`${where}: attrs 须为对象（键须 data-*，值为字符串）`)
+  }
+  const out = {}
+  for (const [key, value] of Object.entries(attrs)) {
+    if (!ATTR_KEY_RE.test(key)) {
+      throw new TypeError(`${where}: attrs 键须为 data-*（收到 "${key}"）`)
+    }
+    out[key] = String(value)
+  }
+  return out
+}
+
 /**
  * 产出 Umami `<script>` 标签（纯字符串，供无框架/静态站内联；React 站用 `@hxym18/analytics/react`）。
- * @param {{ websiteId: string, scriptSrc?: string }} opts
+ *
+ * `attrs` 供附加属性（P-1）：hash 路由站传 `{ 'data-exclude-hash': 'true' }` 即可去 hash，
+ * 不必再自建标签；键白名单见 `resolveAttrs`，值自动转义。
+ * @param {{ websiteId: string, scriptSrc?: string, attrs?: Record<string, string> }} opts
  * @returns {string}
  */
 export function buildScriptTag(opts) {
   const o = opts || {}
   const src = escapeAttr(o.scriptSrc || DEFAULT_SCRIPT_SRC)
   const id = escapeAttr(o.websiteId || '')
-  return `<script defer src="${src}" data-website-id="${id}"></script>`
+  let extra = ''
+  for (const [key, value] of Object.entries(resolveAttrs(o.attrs, 'buildScriptTag'))) {
+    extra += ` ${key}="${escapeAttr(value)}"`
+  }
+  return `<script defer src="${src}" data-website-id="${id}"${extra}></script>`
 }
 
 /**

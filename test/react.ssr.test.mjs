@@ -39,6 +39,15 @@ test('UmamiScript：hash 路由 pathname 带敏感 hash query → 不产出脚�
   assert.match(render({ websiteId: 'x', pathname: '/#/pages/index/index?tab=1' }), /data-website-id="x"/)
 })
 
+test('UmamiScript：attrs 透传（hash 路由站注入 data-exclude-hash，P-1）', () => {
+  const html = render({ websiteId: 'x', pathname: '/', attrs: { 'data-exclude-hash': 'true' } })
+  assert.match(html, /data-exclude-hash="true"/)
+})
+
+test('UmamiScript：attrs 非 data-* 键抛 TypeError（组件与纯函数同口径）', () => {
+  assert.throws(() => render({ websiteId: 'x', pathname: '/', attrs: { onload: 'x' } }), TypeError)
+})
+
 test('UmamiScript：denyHashKeys 透传（覆盖/关闭 hash 闸）', () => {
   assert.equal(render({ websiteId: 'x', pathname: '/#/x?custom=1', denyHashKeys: ['custom'] }), '')
   assert.match(
