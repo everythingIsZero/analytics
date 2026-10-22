@@ -19,6 +19,7 @@ import { BEFORE_SEND_NAME, DEFAULT_SCRIPT_SRC, resolveAttrs } from './core.mjs'
 export function buildScriptElement(opts) {
   const o = opts || {}
   return createElement('script', {
+    ref: o.ref,
     defer: true,
     src: o.scriptSrc || DEFAULT_SCRIPT_SRC,
     'data-website-id': o.websiteId,

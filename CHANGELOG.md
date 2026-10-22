@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-23
+
+### Fixed
+
+- **React 客户端组件在真实客户端渲染路径下产出的 `<script>` 不执行**（实测 home：标签在 DOM、无网络请求、`window.umami` 永远 undefined）。`createUmamiScriptClient` 现在用 effect 移除惰性标签并调用 `injectUmami` 真正注入；SSR 标记与测试行为不变。
+
 ## [0.5.0] - 2026-10-22
 
 ### Added

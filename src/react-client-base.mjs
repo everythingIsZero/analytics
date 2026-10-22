@@ -6,8 +6,8 @@
  * 把 next 相关 import 隔离在入口，内核即可被 node:test 直接加载、用注入的假 hook 验证
  * 运行时门控（RF1/RF3），无需真实 Next 运行时。
  */
-import { useEffect } from 'react'
-import { installBeforeSend, shouldTrack } from './core.mjs'
+import { useEffect, useRef } from 'react'
+import { injectUmami, installBeforeSend, shouldTrack } from './core.mjs'
 import { buildScriptElement } from './react-render.mjs'
 
 /**
@@ -54,13 +54,18 @@ export function createUmamiScriptClient(hooks) {
     const input = hasPath ? `${pathname}${query ? `?${query}` : ''}${hashStr}` : ''
     const trackable =
       hasPath && !!websiteId && shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })
-    // 运行时守卫：脚本一旦加载，SPA 后续 pushState 仍会上报；只有 before-send 能逐条拦住。
-    // 客户端 effect 在首次导航前安装；SSR 不执行（初始页已由上面的 shouldTrack 判定）。
-    // 必须在任何 return 之前调用——路径从有效变空时 hook 数量不能变。
+    const ref = useRef(null)
+    // React 渲染出来的 <script> 在部分客户端渲染路径下不会执行（实测 home 2026-10-22：
+    // 标签在 DOM、无网络请求、window.umami 永远 undefined）。SSR 标记继续产出（测试/整页场景），
+    // 客户端 effect 移除这个惰性标签，并用 createElement + appendChild 真正注入一份。
+    // 同时安装 before-send 守卫：脚本一旦加载，SPA 后续 pushState 仍会上报。
     useEffect(() => {
-      if (trackable) installBeforeSend({ allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })
+      if (!trackable) return
+      installBeforeSend({ allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })
+      if (ref.current && ref.current.parentNode) ref.current.remove()
+      injectUmami({ websiteId, scriptSrc, attrs, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })
     })
     if (!trackable) return null
-    return buildScriptElement({ websiteId, scriptSrc, attrs })
+    return buildScriptElement({ websiteId, scriptSrc, attrs, ref })
   }
 }
