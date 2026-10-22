@@ -6,7 +6,8 @@
  * 把 next 相关 import 隔离在入口，内核即可被 node:test 直接加载、用注入的假 hook 验证
  * 运行时门控（RF1/RF3），无需真实 Next 运行时。
  */
-import { shouldTrack } from './core.mjs'
+import { useEffect } from 'react'
+import { installBeforeSend, shouldTrack } from './core.mjs'
 import { buildScriptElement } from './react-render.mjs'
 
 /**
@@ -43,16 +44,23 @@ export function createUmamiScriptClient(hooks) {
     const pathname = usePathname && usePathname()
     const searchParams = useSearchParams && useSearchParams()
     const hash = useHash ? useHash() : ''
-    // 路径取不到（hook 返回 null/''，如框架上下文未就绪）→ **fail-closed**：不产出脚本。
-    // 与红线一致（私有页绝不外泄）：未知路径宁可不统计，不可当作根路径放行。
-    if (typeof pathname !== 'string' || pathname.length === 0) return null
     const query = searchParams ? String(searchParams.toString()) : ''
     const hashStr = typeof hash === 'string' ? hash : ''
     const { websiteId, scriptSrc, attrs, allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys } =
       props || {}
-    if (!websiteId) return null
-    const input = `${pathname}${query ? `?${query}` : ''}${hashStr}`
-    if (!shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })) return null
+    // 路径取不到（hook 返回 null/''，如框架上下文未就绪）→ **fail-closed**：不产出脚本。
+    // 与红线一致（私有页绝不外泄）：未知路径宁可不统计，不可当作根路径放行。
+    const hasPath = typeof pathname === 'string' && pathname.length > 0
+    const input = hasPath ? `${pathname}${query ? `?${query}` : ''}${hashStr}` : ''
+    const trackable =
+      hasPath && !!websiteId && shouldTrack(input, { allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })
+    // 运行时守卫：脚本一旦加载，SPA 后续 pushState 仍会上报；只有 before-send 能逐条拦住。
+    // 客户端 effect 在首次导航前安装；SSR 不执行（初始页已由上面的 shouldTrack 判定）。
+    // 必须在任何 return 之前调用——路径从有效变空时 hook 数量不能变。
+    useEffect(() => {
+      if (trackable) installBeforeSend({ allowPrefixes, denyPrefixes, denyQueryKeys, denyHashKeys })
+    })
+    if (!trackable) return null
     return buildScriptElement({ websiteId, scriptSrc, attrs })
   }
 }

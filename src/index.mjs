@@ -4,9 +4,13 @@ export {
   DEFAULT_DENY_QUERY_KEYS,
   DEFAULT_DENY_HASH_KEYS,
   NOINDEX_ROBOTS,
+  BEFORE_SEND_NAME,
   resolvePathname,
   resolveHashQueryKeys,
   shouldTrack,
+  createBeforeSend,
+  installBeforeSend,
+  injectUmami,
   buildScriptTag,
   trackEvent,
 } from './core.mjs'

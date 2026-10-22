@@ -87,21 +87,23 @@ export const metadata = { robots: NOINDEX_ROBOTS } // { index: false, follow: fa
 ## 无框架 / 静态站
 
 ```js
-import { shouldTrack, buildScriptTag } from '@hxym18/analytics'
+import { injectUmami } from '@hxym18/analytics'
 
-if (shouldTrack(location.pathname + location.search + location.hash)) {
-  document.head.insertAdjacentHTML('beforeend', buildScriptTag({ websiteId: '<id>' }))
-}
+// 用 createElement + appendChild 注入；脚本会真正执行，并自动安装 before-send 守卫。
+injectUmami({ websiteId: '<id>' })
 ```
 
-**hash 路由站（Taro H5 / HashRouter）必须再传 `attrs`**：Umami 的 URL 上报默认**含 hash**，而门控只在挂载那一刻判定——SPA 内从公开页导航到 `#/pages/reader?shareId=…` 时 token 仍会上报。传 `data-exclude-hash` 让 tracker 自己剥 hash：
+> ⚠️ **不要用 `insertAdjacentHTML` / `innerHTML` 插 `<script>`**：HTML 规范规定这种方式插入的
+> script **不会执行**——标签在 DOM 里、浏览器不发请求、`window.umami` 也不会挂上。
+> zbh / nuantie 线上曾因此长期 0 数据。`buildScriptTag()` 只用于 SSR 直接输出整页 HTML；
+> 浏览器运行时一律用 `injectUmami()`。
 
-```js
-buildScriptTag({ websiteId: '<id>', attrs: { 'data-exclude-hash': 'true' } })
-```
+**hash 路由站（Taro H5 / HashRouter）**：`injectUmami()` 默认安装 `data-before-send` 守卫：
+命中敏感 hash query 的上报直接丢弃；公开页只去掉 hash 内的 query，保留 `#/route/path`，
+所以路由级 PV 还在。不需要再传 `data-exclude-hash`（它会把整段 hash 删掉，所有页面都记成 `/`）。
 
-- `attrs` 键白名单：只放行 `data-*`（其余如 `src` / `onload` / `id` 抛 `TypeError`——静默忽略会变成「传了没生效」的隐蔽 bug）；值自动转义，不会破标签。
-- React 站同口径：`<UmamiScript … attrs={{ 'data-exclude-hash': 'true' }} />` / `<UmamiScriptClient … attrs={…} />`。
+如需保留旧写法，`attrs` 仍可传（键白名单只放行 `data-*`，其余如 `src` / `onload` / `id` 抛
+`TypeError`；值自动转义，不会破标签）。
 
 ## 业务事件（自定义事件）
 

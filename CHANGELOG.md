@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-22
+
+### Added
+
+- **`injectUmami(opts)`**：用 `createElement('script') + appendChild` 安全注入 Umami，脚本会真正执行。默认安装 `data-before-send` 守卫。SSR / 无 id / 已存在同站脚本 → `null`。
+- **`createBeforeSend(opts)` / `installBeforeSend(opts)` / `BEFORE_SEND_NAME`**：逐条上报前判定。SPA 内从公开页导航到私有/带 token 路由时，整个上报被丢弃；hash 路由的公开页去掉 hash 内 query（保留 `#/route/path`），既不让 `shareId` 泄漏，也不把所有页面记成 `/`。
+
+### Fixed
+
+- **README 旧示例用 `insertAdjacentHTML` 插 script —— 浏览器不会执行这种 script**（HTML 规范：innerHTML / insertAdjacentHTML 插入的 `<script>` 是惰性的）。zbh、nuantie 线上因此脚本标签存在但 `window.umami` 永远 undefined、0 数据。README 改为 `injectUmami()` 并写明原因。
+- React 客户端组件补装 before-send 守卫：仅在渲染期返回 `null` 挡不住已加载脚本的 `pushState` 上报。
+
+### Changed
+
+- `buildScriptElement` 固定输出 `data-before-send="__hxym18UmamiBeforeSend"`，调用方传同键也不得覆盖。
+- `buildScriptTag` 仅用于 SSR 整页输出；浏览器运行时用 `injectUmami`。
+
 ### Fixed
 
 - `resolveHashQueryKeys` 从 hash 内**首个 `?` 或 `&`** 起解析（原只认 `?`）：hash 路由把参数直接接在路径后（`#/x&token=1`，hash 里没有 `?`）时不再漏拦，覆盖面与 nuantie 本地 `TOKEN_RE = /[?&](shareId|share|token|ticket)=/i` 完全对齐。

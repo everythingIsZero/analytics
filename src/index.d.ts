@@ -15,6 +15,28 @@ export const NOINDEX_ROBOTS: Readonly<{ index: false; follow: false }>
 
 export function resolvePathname(input: unknown): string
 
+/** Umami `data-before-send` 守卫的全局函数名 */
+export const BEFORE_SEND_NAME: string
+
+/** 造 `data-before-send` 守卫：私有/带 token URL 返回 false；hash 公开页去掉 hash query */
+export function createBeforeSend(opts?: ShouldTrackOptions): (
+  type: string,
+  payload: Record<string, unknown>,
+) => Record<string, unknown> | false
+
+/** 把守卫装到 window，返回 data-before-send 用的函数名（SSR 不装） */
+export function installBeforeSend(opts?: ShouldTrackOptions): string
+
+/**
+ * 安全注入 Umami 脚本（createElement + appendChild，脚本会真正执行）。
+ * 默认安装 data-before-send 守卫。SSR / 无 id / 已存在同站脚本 → null。
+ */
+export function injectUmami(opts: {
+  websiteId: string
+  scriptSrc?: string
+  attrs?: Record<string, string>
+} & ShouldTrackOptions): HTMLScriptElement | null
+
 /** 取 hash 内 query 的小写 key（无 hash/无 query/非法 → `[]`） */
 export function resolveHashQueryKeys(input: unknown): string[]
 

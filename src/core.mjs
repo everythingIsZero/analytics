@@ -197,7 +197,109 @@ export function resolveAttrs(attrs, where) {
 }
 
 /**
+ * Umami `data-before-send` 守卫的全局函数名（单页只有一个统计实例，固定名避免随机名泄漏）。
+ * 脚本在每次上报前调用 `window[BEFORE_SEND_NAME](type, payload)`：
+ * - 命中私有/带 token 的当前 URL → 返回 `false`，整条上报丢弃（SPA 客户端切到私有路由也拦得住）；
+ * - hash 路由的公开页 → 去掉 hash 内的 query（保留路由 path），避免 `shareId` 等参数上报。
+ */
+export const BEFORE_SEND_NAME = '__hxym18UmamiBeforeSend'
+
+/**
+ * 造 `data-before-send` 守卫（纯函数，可单测）。
+ *
+ * 为什么需要：只在挂载时门控挡不住 SPA 后续导航——脚本一旦加载，history.pushState 的
+ * pageview 仍会发。Umami 支持 `data-before-send`，在发送前逐条判定才是运行时门控。
+ *
+ * @param {{
+ *   allowPrefixes?: string[],
+ *   denyPrefixes?: string[],
+ *   denyQueryKeys?: string[],
+ *   denyHashKeys?: string[],
+ * }} [opts] 与 `shouldTrack` 同口径
+ * @returns {(type: string, payload: Record<string, unknown>) => Record<string, unknown> | false}
+ */
+export function createBeforeSend(opts) {
+  const o = opts || {}
+  return function beforeSend(_type, payload) {
+    if (!payload || typeof payload !== 'object') return payload
+    const url = payload.url
+    if (typeof url !== 'string' || !url) return payload
+    if (!shouldTrack(url, o)) return false
+    // hash 路由：保留 `#/route/path`，丢掉 hash 内 query（token/shareId 只可能在这里）。
+    // search 已在 shouldTrack 里判过敏感键；公开 query 保留，维持 Umami 原有口径。
+    try {
+      const u = new URL(url, 'http://localhost')
+      if (u.hash) {
+        const qi = u.hash.search(/[?&]/)
+        if (qi !== -1) u.hash = u.hash.slice(0, qi)
+        payload.url = u.origin === 'http://localhost' ? `${u.pathname}${u.search}${u.hash}` : u.toString()
+      }
+    } catch {}
+    return payload
+  }
+}
+
+/**
+ * 把守卫装到 `window`，返回 `data-before-send` 用的函数名。
+ * SSR 环境不装（脚本也不会在 SSR 执行），返回固定名即可。
+ * @param {Parameters<typeof createBeforeSend>[0]} [opts]
+ * @returns {string}
+ */
+export function installBeforeSend(opts) {
+  if (typeof window !== 'undefined') {
+    window[BEFORE_SEND_NAME] = createBeforeSend(opts)
+  }
+  return BEFORE_SEND_NAME
+}
+
+/**
+ * 注入 Umami 脚本到 DOM（**唯一安全注入方式**）。
+ *
+ * 为什么不能照 README 旧例子用 `insertAdjacentHTML`：HTML 规范规定经
+ * `innerHTML` / `insertAdjacentHTML` 插入的 `<script>` **不会执行**——标签在 DOM 里，
+ * 但浏览器既不发请求也不挂 `window.umami`。zbh / nuantie 线上因此长期 0 数据。
+ * 本函数用 `document.createElement('script')` + `appendChild`，并默认安装
+ * `data-before-send` 守卫（SPA 运行时门控）。
+ *
+ * @param {{
+ *   websiteId: string,
+ *   scriptSrc?: string,
+ *   attrs?: Record<string, string>,
+ *   allowPrefixes?: string[],
+ *   denyPrefixes?: string[],
+ *   denyQueryKeys?: string[],
+ *   denyHashKeys?: string[],
+ * }} opts
+ * @returns {HTMLScriptElement | null} 已插入的元素；SSR / 无 id / 已存在同站脚本 → null
+ */
+export function injectUmami(opts) {
+  if (typeof document === 'undefined') return null
+  const o = opts || {}
+  if (!o.websiteId) return null
+  if (document.querySelector('script[data-website-id]')) return null
+  const guard = installBeforeSend({
+    allowPrefixes: o.allowPrefixes,
+    denyPrefixes: o.denyPrefixes,
+    denyQueryKeys: o.denyQueryKeys,
+    denyHashKeys: o.denyHashKeys,
+  })
+  const el = document.createElement('script')
+  el.defer = true
+  el.src = o.scriptSrc || DEFAULT_SCRIPT_SRC
+  el.setAttribute('data-website-id', o.websiteId)
+  const attrs = { ...(o.attrs || {}), 'data-before-send': guard }
+  for (const [key, value] of Object.entries(resolveAttrs(attrs, 'injectUmami'))) {
+    el.setAttribute(key, value)
+  }
+  document.head.appendChild(el)
+  return el
+}
+
+/**
  * 产出 Umami `<script>` 标签（纯字符串，供无框架/静态站内联；React 站用 `@hxym18/analytics/react`）。
+ *
+ * ⚠️ 不要把返回值交给 `insertAdjacentHTML` / `innerHTML`：那样插入的 script **不会执行**。
+ * 浏览器环境请用 `injectUmami()`；只有 SSR 输出整页 HTML 时才直接内联本字符串。
  *
  * `attrs` 供附加属性（P-1）：hash 路由站传 `{ 'data-exclude-hash': 'true' }` 即可去 hash，
  * 不必再自建标签；键白名单见 `resolveAttrs`，值自动转义。

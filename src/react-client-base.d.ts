@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 export interface UmamiScriptClientProps {
   websiteId: string
   scriptSrc?: string
-  /** 附加属性（P-1）：键须 `data-*`，否则抛 `TypeError`；值自动转义。hash 路由站传 `{ 'data-exclude-hash': 'true' }` */
+  /** 附加属性（P-1）：键须 `data-*`，否则抛 `TypeError`；值自动转义。`data-before-send` 由包固定，不得覆盖 */
   attrs?: Record<string, string>
   allowPrefixes?: string[]
   denyPrefixes?: string[]
