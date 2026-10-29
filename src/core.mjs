@@ -270,19 +270,22 @@ export function installBeforeSend(opts) {
  *   denyQueryKeys?: string[],
  *   denyHashKeys?: string[],
  * }} opts
- * @returns {HTMLScriptElement | null} 已插入的元素；SSR / 无 id / 已存在同站脚本 → null
+ * @returns {HTMLScriptElement | null} 已插入的元素；SSR / 无 id / 已存在同站脚本 / tracker 已启动 → null
  */
 export function injectUmami(opts) {
   if (typeof document === 'undefined') return null
   const o = opts || {}
   if (!o.websiteId) return null
-  if (document.querySelector('script[data-website-id]')) return null
   const guard = installBeforeSend({
     allowPrefixes: o.allowPrefixes,
     denyPrefixes: o.denyPrefixes,
     denyQueryKeys: o.denyQueryKeys,
     denyHashKeys: o.denyHashKeys,
   })
+  // 已有 tracker 在跑就不能再注入第二份：SSR 出的标签若已执行，会挂上 window.umami；
+  // 再注入一份会重复发 pageview，把一次访问压成 0 秒（2026-10-29 hmd 实测：一次加载 2 次 /api/send）。
+  if (typeof window !== 'undefined' && window.umami) return null
+  if (document.querySelector('script[data-website-id]')) return null
   const el = document.createElement('script')
   el.defer = true
   el.src = o.scriptSrc || DEFAULT_SCRIPT_SRC
@@ -293,6 +296,56 @@ export function injectUmami(opts) {
   }
   document.head.appendChild(el)
   return el
+}
+
+/**
+ * 客户端组件的挂载调度：**等 defer 脚本的执行窗口结束后再决定**是否补注入。
+ *
+ * 为什么要等：SSR 出的 `<script defer>` 可能已入队但还没执行，此时 `window.umami` 仍是
+ * undefined；而从 DOM 移除元素**不会**撤销已排队脚本的执行（HTML 规范）。若此刻删除并
+ * 注入第二份，两份 tracker 会各发一次 pageview，访问时长恒为 0（2026-10-29 hmd 实测）。
+ * defer 脚本一律在 `DOMContentLoaded` 之前执行完，所以在 complete → DCL 之后判定：
+ * `window.umami` 已挂 = 标签执行成功，保留；未挂 = 失败/惰性，删掉再注入一份。
+ *
+ * @param {{
+ *   trackable: boolean,
+ *   websiteId: string,
+ *   scriptSrc?: string,
+ *   attrs?: Record<string, string>,
+ *   ssrElement?: { remove?: () => void, parentNode?: unknown } | null,
+ *   allowPrefixes?: string[],
+ *   denyPrefixes?: string[],
+ *   denyQueryKeys?: string[],
+ *   denyHashKeys?: string[],
+ * }} opts
+ * @returns {() => void} cancel：组件卸载/门控翻转时撤销 DCL 监听（防止用旧帧的门控值注入）
+ */
+export function mountUmami(opts) {
+  const noop = () => {}
+  if (typeof document === 'undefined') return noop
+  const o = opts || {}
+  if (!o.trackable) return noop
+  const guardOpts = {
+    allowPrefixes: o.allowPrefixes,
+    denyPrefixes: o.denyPrefixes,
+    denyQueryKeys: o.denyQueryKeys,
+    denyHashKeys: o.denyHashKeys,
+  }
+  installBeforeSend(guardOpts)
+  const decide = () => {
+    // 已有 tracker：SSR 标签执行成功，保留它，绝不再注入第二份。
+    if (typeof window !== 'undefined' && window.umami) return
+    if (o.ssrElement && o.ssrElement.parentNode) o.ssrElement.remove()
+    injectUmami({ ...guardOpts, websiteId: o.websiteId, scriptSrc: o.scriptSrc, attrs: o.attrs })
+  }
+  if (document.readyState === 'complete') {
+    decide()
+    return noop
+  }
+  // 'interactive' 也必须等 DCL：此时 defer 脚本可能只执行了一部分，
+  // 提前判定会把「已入队未执行」误当成惰性标签（2026-10-29 双发根因）。
+  document.addEventListener('DOMContentLoaded', decide, { once: true })
+  return () => document.removeEventListener('DOMContentLoaded', decide)
 }
 
 /**

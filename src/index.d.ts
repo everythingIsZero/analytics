@@ -37,6 +37,21 @@ export function injectUmami(opts: {
   attrs?: Record<string, string>
 } & ShouldTrackOptions): HTMLScriptElement | null
 
+/**
+ * 客户端组件挂载调度：等 defer 执行窗口结束（DOMContentLoaded）后判定。
+ * `window.umami` 已挂 = SSR 标签执行成功 → 保留，不再注入；否则删惰性标签并注入一份。
+ */
+export function mountUmami(
+  opts: {
+    trackable: boolean
+    websiteId: string
+    scriptSrc?: string
+    attrs?: Record<string, string>
+    /** SSR 渲染出的 `<script>` 元素（惰性时才删除） */
+    ssrElement?: { remove?: () => void; parentNode?: unknown } | null
+  } & ShouldTrackOptions,
+): () => void
+
 /** 取 hash 内 query 的小写 key（无 hash/无 query/非法 → `[]`） */
 export function resolveHashQueryKeys(input: unknown): string[]
 

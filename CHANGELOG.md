@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-29
+
+### Fixed
+
+- **SSR 标签先执行时客户端组件会注入第二份 tracker**：挂载调度改为等 `DOMContentLoaded`（defer 脚本必在此之前执行完）再判定——`window.umami` 已挂就保留 SSR 标签，不再注入；只有标签惰性/加载失败才删掉补注入。两份 tracker 会各发一次 pageview，把每次访问压成 0 秒（浏览器实测 hmd：一次页面加载 2 次 `/api/send`；2026-10-29 前 30 天 9 次访问 15 个 pageview，全部 0 秒）。
+- `injectUmami`：`window.umami` 已存在时直接返回 `null`（任何站点），并仍在返回前安装 before-send 守卫。新增可测的 `mountUmami` 调度函数。
+
 ## [0.5.1] - 2026-10-23
 
 ### Fixed

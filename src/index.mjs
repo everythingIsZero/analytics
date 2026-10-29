@@ -11,6 +11,7 @@ export {
   createBeforeSend,
   installBeforeSend,
   injectUmami,
+  mountUmami,
   buildScriptTag,
   trackEvent,
 } from './core.mjs'

@@ -104,6 +104,25 @@ test('injectUmami：用 createElement + appendChild（不是 insertAdjacentHTML�
   }
 })
 
+test('injectUmami：tracker 已启动（window.umami 存在）→ 不注入第二份', () => {
+  const prevDoc = globalThis.document
+  const prevWin = globalThis.window
+  const { doc, appended } = makeDoc()
+  try {
+    globalThis.document = doc
+    // SSR 标签先执行完的形态：tracker 已挂 window.umami
+    globalThis.window = { umami: { track() {}, identify() {} } }
+    assert.equal(injectUmami({ websiteId: 'site-1' }), null)
+    assert.equal(appended.length, 0, '已有 tracker 时不得再插脚本（重复 pageview → 访问时长 0 秒）')
+    assert.equal(typeof globalThis.window[BEFORE_SEND_NAME], 'function', '仍要装运行时守卫')
+  } finally {
+    if (prevDoc === undefined) delete globalThis.document
+    else globalThis.document = prevDoc
+    if (prevWin === undefined) delete globalThis.window
+    else globalThis.window = prevWin
+  }
+})
+
 test('injectUmami：重复调用幂等，不插第二个脚本', () => {
   const prevDoc = globalThis.document
   const prevWin = globalThis.window
